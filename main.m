@@ -2,6 +2,8 @@
 clear all
 close all
 
+
+ProxL1 = @(x,gamma) sign(x).*max(0,abs(x)-gamma);
 fe = 500;
 N = 2^8;
 J = 50;
@@ -17,12 +19,14 @@ a = Bw.*V;
 
 x = @(n) sum(a.*cos(2*pi*fj*n),2);
 
-%% Affichage de x
-
 Xval = zeros(1,N);
 for i=1:N
     Xval(i) = x(i);
 end
+
+
+%% Affichage de x
+
 
 plot(1:N, Xval)
 
@@ -177,16 +181,19 @@ plot(x_hat_dct2)
 
 % Ici, ca revient à faire ce qu'on voit slide 160, on résoud le problème
 % sur u (dct de x) pour ca on fait algo d'opti (voir BE opti pour ca)
-
-ProxL1 = @(x,gamma) sign(x).*max(0,abs(x)-gamma); 
-kmax = 150;
-k=1;
-s=0.1;
-u = psi*y_noisy;
-err = zeros(1,kmax);
 figure;
-while k<=kmax
-    u = ProxL1(u-s*(((H*psi')'*(H*psi'))*u-(H*psi')'*y_noisy),s);
+Tlambda_dct = 10.^(-5 : 0.2 : 1);
+Nlambda_dct = length(Tlambda_dct);
+Tab_MSE_dct = zeros(1,Nlambda_dct)+NaN;
+figure;
+s=0.1;
+i=0;
+for lambda_dct = Tlambda_dct
+    u = psi*y_noisy;
+    i=i+1;
+    for l=1:100
+        u = ProxL1(u-s*(((H*psi')'*(H*psi'))*u-(H*psi')'*y_noisy),lambda_dct);
+    end
     subplot(2,1,1)
     plot(vect_t,Xval);
     hold on
@@ -196,13 +203,39 @@ while k<=kmax
     legend('x','x_hat')
     hold off
     subplot(2,1,2)
-    err(k) = norm(psi*Xval' - u)^2;
-    k=k+1;
-    plot(1:kmax, err)
+    Tab_MSE_dct(i) = norm(Xval'-psi'*u)^2;
+    plot(1:Nlambda_dct,Tab_MSE_dct)
     drawnow
 end
 
-x_hat_dct1 = psi'*u;
+[~ , i_opt_dct] = min(Tab_MSE_dct);
+lambda_opt_dct1 = Tlambda_dct(i_opt_dct);
+
+
+
+
+
+%% Iteration sur lambda opt
+k2max = 100;
+k=1;
+u = psi*y_noisy;
+err_dct = zeros(1,k2max);
+while k<=k2max
+    u = ProxL1(u-s*(((H*psi')'*(H*psi'))*u-(H*psi')'*y_noisy),lambda_opt_dct1);
+    subplot(2,1,1)
+    plot(vect_t,Xval);
+    hold on
+    plot(vect_t,psi'*u,'k')
+    axis tight
+    xlabel('t')
+    legend('x','x_hat')
+    hold off
+    subplot(2,1,2)
+    err_dct(k) = norm(Xval - psi'*u)^2;
+    plot(Tab_MSE_dct)
+    drawnow
+end
+
 
 %% Comparaison
 
@@ -251,36 +284,46 @@ hold off
 
 %% L1 mais lambda
 
-%Lambda optimal à 10^-5, taux de convergence trop lent, 0.001 fonctionne
-%bien et on converge très rapidement (10 itérations environ)
 
-% Tlambda_dict = 10.^(-5 : 0.2 : 1);
-% Nlambda_dict = length(Tlambda_dict);
-% Tab_MSE_dict = zeros(1,Nlambda_dict)+NaN;
-% 
-% i=0;
-% for lambda_dict = Tlambda_dict
-%     i = i+1;
-%     z = ProxL1(z-s*(((H*D)'*(H*D))*z-(H*D)'*y_noisy),s);
-%     Tab_MSE_dict(i) = norm(Xval'-D*z)^2;
-% end
-% 
-% 
-% [minerr_dict, i_opt_dict] = min(Tab_MSE_dict);
-% lambda_opt_dict1 = Tlambda_dict(i_opt_dict);
-% 
+Tlambda_dict = 10.^(-3 : 0.2 : 1);
+Nlambda_dict = length(Tlambda_dict);
+Tab_MSE_dict = zeros(1,Nlambda_dict)+NaN;
+i=0;
+figure;
+s=0.001;
+for lambda_dict = Tlambda_dict
+    i = i+1;
+    z = ones(K,1);
+    for l=1:20
+        z = ProxL1(z-s*(((H*D)'*(H*D))*z-(H*D)'*y_noisy),lambda_dict);
+    end
+    subplot(211)
+    hold on
+    plot(vect_t,D*z,'k')
+    axis tight
+    xlabel('t')
+    legend('x','x_hat')
+    hold off
+    subplot(2,1,2)
+    Tab_MSE_dict(i) = norm(Xval'-D*z)^2;
+    plot(Tab_MSE_dict)
+    drawnow;
+end
+
+
+[minerr_dict, i_opt_dict] = min(Tab_MSE_dict);
+lambda_opt_dict1 = Tlambda_dict(i_opt_dict);
+
 
 
 %% L1
 
 k=1;
-kmax2=10;
-s=0.001;
 z = ones(K,1);
 err_dic = zeros(1,kmax2);
 figure;
 while k<=kmax2
-    z = ProxL1(z-s*(((H*D)'*(H*D))*z-(H*D)'*y_noisy),s);
+    z = ProxL1(z-s*(((H*D)'*(H*D))*z-(H*D)'*y_noisy),lambda_opt_dict1);
     subplot(2,1,1)
     plot(vect_t,Xval);
     hold on
