@@ -276,9 +276,9 @@ Sx_hat_dct1 = abs(fft(x_hat_dct1)).^2;
 
 %% DSP comp
 
-%figure;
-%semilogy(nfft, Sx, nfft,  Sx_hat_dct2, nfft, Sx_hat_dct1)
-%legend('Sx','Sx dct1' , 'Sx dct2')
+figure;
+semilogy(nfft, Sx, nfft,  Sx_hat_dct2, nfft, Sx_hat_dct1)
+legend('Sx','$Sx_{DCT1}$' , '$Sx_{DCT2}$','interpreter','latex')
 
 %% Dictionary-based regularizations
 K=2^9;
@@ -293,7 +293,36 @@ D = cos(2*pi*vkn);
 
 %% L2
 
-z_hat = ((H*D)'*(H*D)+ eye(K))\(H*D)'*y_noisy;
+Tlambda_dict2 = 10.^(-5 : 0.2 : 1);
+Nlambda_dict2 = length(Tlambda_dict2);
+Tab_MSE_dict2 = zeros(1,Nlambda_dict2)+NaN;
+i=0;
+figure;
+for lambda_dict2 = Tlambda_dict2
+    i = i+1;
+    z = ((H*D)'*(H*D)+ lambda_dict2*eye(K))\(H*D)'*y_noisy;
+    subplot(211)
+    plot(vect_t,x)
+    hold on
+    plot(vect_t,D*z,'k')
+    axis tight
+    xlabel('t')
+    legend('x','$Dz l_2$','interpreter' ,'latex')
+    hold off
+    subplot(2,1,2)
+    Tab_MSE_dict2(i) = norm(x-D*z)^2;
+    plot(Tab_MSE_dict2)
+    drawnow
+end
+
+
+[~, i_opt_dict2] = min(Tab_MSE_dict2);
+lambda_opt_dict2 = Tlambda_dict(i_opt_dict2);
+
+
+
+
+z_hat = ((H*D)'*(H*D)+ lambda_opt_dict2*eye(K))\(H*D)'*y_noisy;
 
 x_hat_dict2 = D*z_hat;
 
@@ -302,6 +331,8 @@ hold on
 plot(x)
 plot(x_hat_dict2)
 hold off
+
+
 
 %Simple, rapide, efficace
 
@@ -365,3 +396,7 @@ while k<=k2max
 end
 
 x_hat_dict1 = D*z;
+
+
+%% Plots
+
