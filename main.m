@@ -143,7 +143,7 @@ Sx_hat_opt = abs(fft(x_hat_opt)).^2;
 %% Comparaison des dsp
 figure;
 semilogy(nfft, Sx, nfft,  Sx_hat_opt)
-legend('Sx','Sx chapeau')
+legend('Sx','$Sx_{Laplace}$','interpreter','latex')
 
 %% DCT based Regularization
 
@@ -317,7 +317,7 @@ end
 
 
 [~, i_opt_dict2] = min(Tab_MSE_dict2);
-lambda_opt_dict2 = Tlambda_dict(i_opt_dict2);
+lambda_opt_dict2 = Tlambda_dict2(i_opt_dict2);
 
 
 
@@ -398,5 +398,19 @@ end
 x_hat_dict1 = D*z;
 
 
-%% Plots
+%% dict Plots
 
+figure;
+hold on;
+plot(vect_t,x)
+plot(vect_t,x_hat_dict2)
+plot(vect_t,x_hat_dict1)
+hold off;
+legend('x','$\hat{x}_{DICT2}$','$\hat{x}_{DICT1}$','interpreter','latex')
+
+%% DSP dict
+Sx_hat_dict2 = abs(fft(x_hat_dict2)).^2;
+Sx_hat_dict1 = abs(fft(x_hat_dict1)).^2;
+figure;
+semilogy(nfft, Sx, nfft,  Sx_hat_dict2, nfft, Sx_hat_dict1)
+legend('Sx','$Sx_{Dict1}$' , '$Sx_{Dict2}$','interpreter','latex')
